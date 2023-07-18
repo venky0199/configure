@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Guess the Number</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      text-align: center;
+      font-family: Arial, sans-serif;
+      background-color: #f3f3f3;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      margin-top: 30px;
+      color: #333;
+    }
+
+    #game {
+      margin-top: 50px;
+    }
+
+    #guess-input {
+      width: 100px;
+      margin-right: 10px;
+      text-align: center;
+      height: 20px;
+    }
+
+    #button-container {
+      display: flex;
+      justify-content: center;
+      margin-top: 10px;
+    }
+
+    #guess-button, #try-again-button, #clue-button {
+      padding: 5px 10px;
+      font-size: 14px;
+      border-radius: 3px;
+      background-color: #333;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+
+    #guess-button:disabled, #clue-button:disabled {
+      background-color: #aaa;
+      cursor: not-allowed;
+    }
+
+    #try-again-button {
+      display: none;
+    }
+
+    #result {
+      margin-top: 20px;
+      font-weight: bold;
+      color: red; /* Updated to red color */
+    }
+
+    #result.congratulations {
+      color: green; /* Congratulations message color */
+    }
+
+    #attempts-left {
+      margin-top: 10px;
+      color: #777;
+    }
+
+    .clue-option {
+      padding: 5px 10px;
+      font-size: 14px;
+      border-radius: 3px;
+      background-color: #333;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+
+    .clue-option:disabled {
+      background-color: #aaa;
+      cursor: not-allowed;
+    }
+
+    .clue-option-hover {
+      background-color: #666;
+    }
+
+    #clue-container {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Guess the Number</h1>
+  <div id="game">
+    <p>Guess a number between 1 and 100:</p>
+    <input type="number" id="guess-input" min="1" max="100">
+    <div id="button-container">
+      <input type="submit" id="guess-button" value="Guess">
+      <button id="try-again-button">Try Again</button>
+      <button id="clue-button" disabled title="This button will be enabled only when you have 1 attempt left">Get Clue</button>
+    </div>
+    <p id="result"></p>
+    <p id="attempts-left"></p>
+    <div id="clue-container"></div>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const guessInput = document.getElementById('guess-input');
+      const guessButton = document.getElementById('guess-button');
+      const tryAgainButton = document.getElementById('try-again-button');
+      const clueButton = document.getElementById('clue-button');
+      const result = document.getElementById('result');
+      const attemptsLeft = document.getElementById('attempts-left');
+      const clueContainer = document.getElementById('clue-container');
+
+      let targetNumber;
+      let attempts = 0;
+      const maxAttempts = 10;
+
+      function generateTargetNumber() {
+        targetNumber = Math.floor(Math.random() * 100) + 1;
+      }
+
+      function guessNumber() {
+        const guess = parseInt(guessInput.value);
+        if (isNaN(guess) || guess < 1 || guess > 100) {
+          result.textContent = 'Please enter a valid number between 1 and 100.';
+        } else {
+          attempts++;
+          const attemptsRemaining = maxAttempts - attempts;
+
+          if (guess === targetNumber) {
+            result.textContent = `Congratulations! You guessed the number ${targetNumber} in ${attempts} attempts.`;
+            result.classList.add('congratulations'); // Add 'congratulations' class
+            guessInput.disabled = true;
+            guessButton.disabled = true;
+            tryAgainButton.style.display = 'block';
+            clueButton.disabled = true;
+            clueContainer.innerHTML = '';
+          } else if (guess < targetNumber) {
+            result.textContent = 'Too low. Enter again.';
+          } else {
+            result.textContent = 'Too high. Enter again.';
+          }
+
+          if (attempts === maxAttempts) {
+            result.textContent = `Game Over! You exceeded the maximum number of attempts. The number was ${targetNumber}.`;
+            guessInput.disabled = true;
+            guessButton.disabled = true;
+            tryAgainButton.style.display = 'block';
+            clueButton.disabled = true;
+            clueContainer.innerHTML = '';
+          }
+
+          attemptsLeft.textContent = `Attempts left: ${attemptsRemaining}`;
+
+          if (attemptsRemaining === 1) {
+            clueButton.disabled = false;
+          }
+        }
+        guessInput.value = '';
+      }
+
+      function getClue() {
+        const correctOption = Math.floor(Math.random() * 4); // Index of the correct option (0-3)
+        const clueOptions = [];
+        for (let i = 0; i < 4; i++) {
+          if (i === correctOption) {
+            clueOptions.push(targetNumber);
+          } else {
+            let incorrectOption;
+            do {
+              incorrectOption = generateIncorrectOption();
+            } while (clueOptions.includes(incorrectOption));
+            clueOptions.push(incorrectOption);
+          }
+        }
+
+        clueContainer.innerHTML = `
+          <p>Is the number:</p>
+          <button class="clue-option" data-clue="${clueOptions[0]}">${clueOptions[0]}</button>
+          <button class="clue-option" data-clue="${clueOptions[1]}">${clueOptions[1]}</button>
+          <button class="clue-option" data-clue="${clueOptions[2]}">${clueOptions[2]}</button>
+          <button class="clue-option" data-clue="${clueOptions[3]}">${clueOptions[3]}</button>
+        `;
+        const clueOptionButtons = document.querySelectorAll('.clue-option');
+        clueOptionButtons.forEach(option => {
+          option.addEventListener('click', handleClueSelection);
+          option.addEventListener('mouseenter', handleClueHover);
+          option.addEventListener('mouseleave', handleClueHover);
+        });
+        clueButton.disabled = true;
+      }
+
+      function generateIncorrectOption() {
+        const range = Math.floor(targetNumber / 10);
+        const randomOffset = Math.floor(Math.random() * range) + 1;
+        const isNegative = Math.random() < 0.5;
+        const incorrectOption = isNegative ? targetNumber - randomOffset : targetNumber + randomOffset;
+        return incorrectOption;
+      }
+
+      function handleClueSelection(e) {
+        const selectedOption = e.target.dataset.clue;
+        if (parseInt(selectedOption) === targetNumber) {
+          result.textContent = `Congratulations! You guessed the number ${targetNumber} correctly. You win!`;
+          result.classList.add('congratulations'); // Add 'congratulations' class
+          guessInput.disabled = true;
+          guessButton.disabled = true;
+          tryAgainButton.style.display = 'block';
+          clueButton.disabled = true;
+          clueContainer.innerHTML = '';
+        } else {
+          result.textContent = `Game Over! You selected the clue incorrectly.Better luck next time! The number was ${targetNumber}.`;
+          guessInput.disabled = true;
+          guessButton.disabled = true;
+          tryAgainButton.style.display = 'block';
+          clueButton.disabled = true;
+          clueContainer.innerHTML = '';
+        }
+      }
+
+      function handleClueHover(e) {
+        const selectedOption = e.target.dataset.clue;
+        if (selectedOption) {
+          e.target.classList.toggle('clue-option-hover');
+        }
+      }
+
+      function resetGame() {
+        guessInput.disabled = false;
+        guessButton.disabled = false;
+        tryAgainButton.style.display = 'inline-block';
+        clueButton.disabled = true;
+        result.textContent = '';
+        result.classList.remove('congratulations'); // Remove 'congratulations' class
+        attemptsLeft.textContent = `Attempts left: ${maxAttempts}`;
+        attempts = 0;
+        generateTargetNumber();
+        clueContainer.innerHTML = '';
+      }
+
+      guessButton.addEventListener('click', guessNumber);
+      tryAgainButton.addEventListener('click', resetGame);
+      clueButton.addEventListener('click', getClue);
+
+      // Add event listener for Enter key press
+      guessInput.addEventListener('keyup', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          guessButton.click();
+        }
+      });
+        //This will change the code and will be merged into the main branch from the test1 branch
+      generateTargetNumber();
+      attemptsLeft.textContent = `Attempts left: ${maxAttempts}`;
+       //changes in main branch
+      tryAgainButton.style.display = 'block';
+    });
+  </script>
+</body>
+</html>
